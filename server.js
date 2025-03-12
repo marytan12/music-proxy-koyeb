@@ -1,8 +1,18 @@
 const express = require('express');
+const cors = require('cors'); // Agregamos el middleware cors
 const { createProxyMiddleware } = require('http-proxy-middleware');
 
-const app = express(); // Aquí se crea la instancia de Express
+const app = express(); // Instancia de Express
 
+// Configura CORS explícitamente para permitir orígenes de Cordova
+app.use(cors({
+  origin: ['http://127.0.0.1:15501', 'file://', '*'], // Permite estos orígenes
+  methods: ['GET', 'POST', 'OPTIONS'], // Métodos permitidos
+  allowedHeaders: ['Content-Type', 'Authorization'], // Encabezados permitidos
+  credentials: false // No necesitamos credenciales para este caso
+}));
+
+// Configura el proxy para Musixmatch
 app.use('/musixmatch', createProxyMiddleware({
   target: 'https://api.musixmatch.com',
   changeOrigin: true,
@@ -15,10 +25,12 @@ app.use('/musixmatch', createProxyMiddleware({
     return apiUrl.replace('https://api.musixmatch.com', '');
   },
   onProxyReq: (proxyReq, req, res) => {
-    console.log(`Proxying request: ${req.originalUrl}`);
+    console.log(`Proxying request from ${req.ip}: ${req.originalUrl}`);
   },
   onProxyRes: (proxyRes, req, res) => {
     console.log(`Response from Musixmatch: ${proxyRes.statusCode}`);
+    // Forzamos el encabezado CORS en la respuesta
+    proxyRes.headers['Access-Control-Allow-Origin'] = '*';
   },
   onError: (err, req, res) => {
     console.error(`Proxy error: ${err.message}`);
@@ -26,7 +38,13 @@ app.use('/musixmatch', createProxyMiddleware({
   },
 }));
 
-// Asegúrate de que el servidor escuche en un puerto
-app.listen(3000, () => {
-  console.log('Servidor escuchando en el puerto 3000');
+// Endpoint de prueba para depuración
+app.get('/test', (req, res) => {
+  res.send('Proxy funcionando');
+});
+
+// Maneja las solicitudes al puerto definido por el entorno o 3000 por defecto
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+  console.log(`Servidor escuchando en el puerto ${PORT}`);
 });

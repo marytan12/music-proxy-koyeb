@@ -1,3 +1,8 @@
+const express = require('express');
+const { createProxyMiddleware } = require('http-proxy-middleware');
+
+const app = express(); // Aquí se crea la instancia de Express
+
 app.use('/musixmatch', createProxyMiddleware({
   target: 'https://api.musixmatch.com',
   changeOrigin: true,
@@ -20,3 +25,8 @@ app.use('/musixmatch', createProxyMiddleware({
     res.status(500).json({ error: 'Error en el proxy', details: err.message });
   },
 }));
+
+// Asegúrate de que el servidor escuche en un puerto
+app.listen(3000, () => {
+  console.log('Servidor escuchando en el puerto 3000');
+});
